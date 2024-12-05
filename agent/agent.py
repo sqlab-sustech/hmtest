@@ -11,7 +11,7 @@ class Agent(ABC):
         self.action_count: dict[int] = {}
 
     @abstractmethod
-    def get_action(self, window_state: WindowState, PTG: dict) -> WindowAction:
+    def get_action(self, window_state: WindowState) -> WindowAction:
         pass
 
     def state_abstraction(self, state: WindowState):

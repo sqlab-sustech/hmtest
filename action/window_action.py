@@ -5,11 +5,8 @@ from hmdriver2.driver import Driver
 
 
 class WindowAction(ABC):
-    def __init__(self, locator: ElementLocator, location: str, x: int | float, y: int | float) -> None:
-        self.locator: ElementLocator | None = locator
-        self.location: str | None = location
-        self.x = x
-        self.y = y
+    def __init__(self) -> None:
+        pass
 
     @abstractmethod
     def execute(self, driver: Driver) -> None:

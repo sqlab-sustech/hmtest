@@ -33,6 +33,7 @@ class _XPath:
             types = re.findall(r'//?(\w+)\[\d+]', xpath)
             return XMLElement(bounds, types[-1], self._d)
 
+        logger.error(f"xpath: {xpath} not found")
         return XMLElement(None, None, self._d)
 
     @staticmethod

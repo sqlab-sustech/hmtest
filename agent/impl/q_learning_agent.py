@@ -7,23 +7,27 @@ from action.window_action import WindowAction
 from agent.agent import Agent
 from exceptions import NoActionsException
 from hmdriver2.driver import Driver
-from state.impl.action_execute_failed_state import ActionExecuteFailedState
+from state.impl.out_of_domain_state import OutOfDomainState
+from state.impl.same_url_state import SameUrlState
 from state.window_state import WindowState
 
 
 class QLearningAgent(Agent):
-    def __init__(self, d: Driver):
+    def __init__(self, d: Driver, app: str, ability_name: str, PTG: dict):
         super().__init__()
         self.d = d
+        self.app = app
+        self.ability_name = ability_name
+        self.PTG = PTG
         self.AGENT_TYPE = "Q"
         self.ALPHA = 1
         self.GAMMA = 0.5
-        self.EPSILON = 0.5
+        self.EPSILON = 0.2
         self.INITIAL_Q_VALUE = 10.0
         self.R_REWARD = 10.0
         self.R_PENALTY = -9999.0
         self.MAX_SIM_LINE = 0.8
-        self.state_repr_list: list[str] = list()
+        self.state_repr_list = list()
         self.q_table: dict[int, dict[int, float]] = dict()
         self.page_path_count: dict[int, int] = dict()
         self.state_count = defaultdict(int)
@@ -32,45 +36,26 @@ class QLearningAgent(Agent):
         self.previous_action: int | None = None
 
     def get_state_index(self, state: WindowState):
-        # if len(self.state_repr_list) == 0:
-        #     self.state_repr_list.append(OutOfDomainState("111"))
-        #     self.state_repr_list.append(ActionExecuteFailedState("111"))
-        #     self.state_repr_list.append(SameUrlState("111"))
-        #     self.q_table[0] = dict()
-        #     self.q_table[1] = dict()
-        #     self.q_table[2] = dict()
-        #     self.q_table[0][0] = -9999
-        #     self.q_table[1][0] = -99
-        #     self.q_table[2][0] = -99
+        if len(self.state_repr_list) == 0:
+            self.state_repr_list.append(OutOfDomainState(self.app, self.ability_name))
+            # self.state_repr_list.append(ActionExecuteFailedState("111"))
+            self.state_repr_list.append(SameUrlState(self.app, self.ability_name))
+            self.q_table[0] = dict()
+            self.q_table[1] = dict()
+            # self.q_table[2] = dict()
+            self.q_table[0][0] = -9999
+            self.q_table[1][0] = -99
+            # self.q_table[2][0] = -99
 
-        components = [
-            '//root[1]/Column[1]/Tabs[1]/TabBar[1]/Column[1]',
-            '//root[1]/Column[1]/Tabs[1]/Swiper[1]/TabContent[1]/Column[1]/Column[1]/Stack[1]/Row[1]/Image[1]',
-            '//root[1]/Column[1]/Tabs[1]/Swiper[1]/TabContent[1]/Column[1]/Column[1]/Stack[1]/Row[1]/Image[2]',
-            '//root[1]/Column[1]/Tabs[1]/Swiper[1]/TabContent[1]/Column[1]/List[1]/ListItem[1]',
-            '//root[1]/Column[1]/Tabs[1]/Swiper[1]/TabContent[1]/Stack[1]/Column[1]/Column[1]/Stack[1]/Row[1]/Image[1]',
-            '//root[1]/Column[1]/Tabs[1]/Swiper[1]/TabContent[1]/Stack[1]/Column[1]/Column[1]/Stack[1]/Row[1]/Image[2]',
-            '//root[1]/Column[1]/Tabs[1]/Swiper[1]/TabContent[1]/Stack[1]/Column[1]/List[1]/ListItemGroup[1]/ListItem[1]',
-            '//root[1]/Column[1]/Tabs[1]/Swiper[1]/TabContent[1]/Column[1]/Column[1]/Stack[1]/Row[1]/Image[1]',
-            '//root[1]/Column[1]/Tabs[1]/Swiper[1]/TabContent[1]/Column[1]/Column[1]/Stack[1]/Row[1]/Image[2]',
-            '//root[1]/Column[1]/Tabs[1]/Swiper[1]/TabContent[1]/Column[1]',
-            '//root[1]/Column[1]/Tabs[1]/Swiper[1]/TabContent[1]/Column[1]/Row[1]',
-            '//root[1]/Column[1]/Tabs[1]/Swiper[1]/TabContent[1]/Column[1]/Row[1]/Image[1]',
-            '//root[1]/Column[1]/Tabs[1]/TabBar[1]/Column[1]',
-            '//root[1]/Column[1]/Tabs[1]/TabBar[1]/Column[2]',
-            '//root[1]/Column[1]/Tabs[1]/TabBar[1]/Column[3]',
-            '//root[1]/Column[1]/Tabs[1]/TabBar[1]/Column[4]',
-        ]
-
-        # if len(self.action_list) == 0:
-        #     self.action_list.append(RestartAction("111"))
-        #     self.action_count[0] = 0
-        # if isinstance(state, OutOfDomainState):
-        #     return 0
+        if len(self.action_list) == 0:
+            self.action_list.append(RestartAction(self.app, self.ability_name))
+            self.action_count[0] = 0
+        if isinstance(state, OutOfDomainState):
+            return 0
         # if isinstance(state, ActionExecuteFailedState):
         #     return 1
-        # if isinstance(state, SameUrlState):
-        #     return 2
+        if isinstance(state, SameUrlState):
+            return 1
 
         state_instance = self.state_abstraction(state)
         if state_instance not in self.state_repr_list:
@@ -82,11 +67,24 @@ class QLearningAgent(Agent):
                 if action not in self.action_list:
                     self.action_list.append(action)
                 a_idx = self.action_list.index(action)
-                if action.locator.value == 'xpath' and action.location in components:
+                # if  action.locator.value == 'xpath':
                     # action_value[a_idx] = self.INITIAL_Q_VALUE
-                    action_value[a_idx] = 1000
+                exist = False
+                for obj in self.PTG[state.page_path]:
+                    c, t = obj["component"], obj["targetPage"]
+                    if c == action.location:
+                        exist = True
+                        break
+                # 如果存在PTG的边，初始值设置高的分数
+                if exist:
+                    print("exist")
+                    print(f"{state.page_path}, {c} -> {t}")
+                    action_value[a_idx] = 1000.0
+                    # action_value[a_idx] = self.INITIAL_Q_VALUE
                 else:
                     action_value[a_idx] = self.INITIAL_Q_VALUE
+                # else:
+                #     action_value[a_idx] = self.INITIAL_Q_VALUE
             self.q_table[s_idx] = action_value
         else:
             s_idx = self.state_repr_list.index(state_instance)
@@ -113,9 +111,9 @@ class QLearningAgent(Agent):
         q_predict = ps_q_values[self.previous_action]
         if self.AGENT_TYPE == "Q":
             action_len = 1
-            if isinstance(window_state, ActionExecuteFailedState):
-                action_list = window_state.get_action_list()
-                action_len = len(action_list)
+            # if isinstance(window_state, ActionExecuteFailedState):
+            #     action_list = window_state.get_action_list()
+            #     action_len = len(action_list)
             gamma = 0.9 * math.exp(-0.1 * (abs(action_len) - 1))
         else:
             gamma = self.GAMMA
@@ -130,7 +128,7 @@ class QLearningAgent(Agent):
             return 0
         return self.action_list.index(action)
 
-    def get_action(self, window_state: WindowState, PTG: dict):
+    def get_action(self, window_state: WindowState):
         actions = window_state.get_action_list()
         # TODO: Add ActionExecuteFailedState and RestartAction
         if len(actions) == 0:

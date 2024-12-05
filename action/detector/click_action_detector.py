@@ -23,7 +23,7 @@ class ClickActionDetector(WindowActionDetector):
                 bounds = parse_bounds(node["attributes"]["bounds"])
                 center = bounds.get_center()
                 window_action_list.append(
-                    ClickAction(ElementLocator.XPATH, xpath, node["attributes"]["text"], center.x, center.y))
+                    ClickAction(ElementLocator.XPATH, xpath, center.x, center.y))
             type_dict: dict[str, int] = defaultdict(lambda: 0)
             for child in node["children"]:
                 child_type = child["attributes"]["type"]

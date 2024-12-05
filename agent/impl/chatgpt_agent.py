@@ -88,7 +88,7 @@ class ChatgptAgent(Agent):
 
         return pattern
 
-    def get_action(self, window_state: WindowState, PTG: dict):
+    def get_action(self, window_state: WindowState):
         image_path = "./screenshot.png"
         self.d.screenshot(image_path)
 

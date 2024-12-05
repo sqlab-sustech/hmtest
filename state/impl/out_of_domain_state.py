@@ -6,8 +6,8 @@ from state.window_state import WindowState
 
 
 class OutOfDomainState(WindowState):
-    def __init__(self, restart_url: str) -> None:
-        self.action = RestartAction(restart_url)
+    def __init__(self, app: str, ability_name: str) -> None:
+        self.action = RestartAction(app, ability_name)
 
     def similarity(self, other: 'WindowState') -> float:
         return 0

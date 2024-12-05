@@ -1,17 +1,15 @@
-import random
-import string
-import time
-
 from action.element_locator import ElementLocator
 from action.window_action import WindowAction
 from hmdriver2.driver import Driver
-from hmdriver2.proto import KeyCode
 
 
 class ClickAction(WindowAction):
-    def __init__(self, locator: ElementLocator, location: str, text: str, x: int | float, y: int | float) -> None:
-        super().__init__(locator, location, x, y)
-        self.text = text
+    def __init__(self, locator: ElementLocator, location: str, x: int | float, y: int | float) -> None:
+        super().__init__()
+        self.locator = locator
+        self.location = location
+        self.x = x
+        self.y = y
 
     def execute(self, d: Driver) -> None:
         if self.locator is not None and self.location is not None:
@@ -34,7 +32,7 @@ class ClickAction(WindowAction):
         return False
 
     def __hash__(self) -> int:
-        return hash((self.locator, self.location, self.text))
+        return hash((self.locator, self.location))
 
     # TODO:
     def __lt__(self, other: object) -> bool:
@@ -46,4 +44,4 @@ class ClickAction(WindowAction):
             return type(self).__name__ < type(other).__name__
 
     def __str__(self) -> str:
-        return f'ClickAction(locator={self.locator}, location={self.location}, text={self.text}, x={self.x}, y={self.y})'
+        return f'ClickAction(locator={self.locator}, location={self.location}, x={self.x}, y={self.y})'

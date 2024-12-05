@@ -1,5 +1,6 @@
 from typing import List, Dict, Any, Tuple, Set
 
+from action.impl.back_action import BackAction
 from action.window_action import WindowAction
 from state.window_state import WindowState
 
@@ -15,6 +16,7 @@ class ActionSetState(WindowState):
 
     def get_action_list(self) -> List[WindowAction]:
         action_list = list(self.action_set)
+        # action_list.append(BackAction())
         action_list.sort()
         return action_list
 
