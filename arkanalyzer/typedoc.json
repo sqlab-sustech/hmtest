@@ -1,0 +1,21 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "name": "ArkAnalyzer",
+    "categoryOrder": [
+        "core/base",
+        "core/base/expr",
+        "core/base/stmt",
+        "core/base/type",
+        "core/base/ref",
+        "core/model",
+        "core/graph",
+        "*"
+    ],
+    "entryPoints": [
+        "./src/index.ts"
+    ],
+    "excludeInternal": true,
+    "useTsLinkResolution": true,
+    "out": "doc",
+    "readme": "./README.en.md"
+}

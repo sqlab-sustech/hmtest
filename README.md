@@ -7,6 +7,7 @@ hmtest是一个开源的、通用的、智能化的鸿蒙应用自动化测试�
 # Reference
 
 - https://github.com/codematrixer/hmdriver2
+- https://gitee.com/openharmony-sig/arkanalyzer
 
 # Related Work
 

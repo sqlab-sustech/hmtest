@@ -31,10 +31,10 @@ class _XPath:
             bounds: Bounds = parse_bounds(raw_bounds)
             logger.debug(f"{xpath} Bounds: {bounds}")
             types = re.findall(r'//?(\w+)\[\d+]', xpath)
-            return XMLElement(bounds, types[-1], self._d)
+            return XMLElement(bounds, types[-1], node.attrib, self._d)
 
         logger.error(f"xpath: {xpath} not found")
-        return XMLElement(None, None, self._d)
+        return XMLElement(None, None, {}, self._d)
 
     @staticmethod
     def _json2xml(hierarchy: Dict) -> etree.Element:
@@ -49,9 +49,10 @@ class _XPath:
 
 
 class XMLElement:
-    def __init__(self, bounds: Bounds | None, ele_type: str | None, d: Driver):
+    def __init__(self, bounds: Bounds | None, ele_type: str | None, attributes: dict, d: Driver):
         self.bounds = bounds
         self.ele_type = ele_type
+        self.attributes = attributes
         self._d = d
 
     def _verify(self):

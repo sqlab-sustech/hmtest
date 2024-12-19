@@ -1,0 +1,12 @@
+{
+    "extends": "./tsconfig.main.json",
+    "include": [
+        "index.ts",
+        "src/**/*",
+        "tests/unit/**/*",
+        "tests/HeapDumpTest.ts"
+    ],
+    "compilerOptions": {
+        "outDir": "./out"
+    }
+}

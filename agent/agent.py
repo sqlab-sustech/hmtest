@@ -8,10 +8,14 @@ class Agent(ABC):
 
     def __init__(self):
         self.action_list: list[WindowAction] = []
-        self.action_count: dict[int] = {}
+        self.action_count: dict[int, int] = {}
 
     @abstractmethod
     def get_action(self, window_state: WindowState) -> WindowAction:
+        pass
+
+    @abstractmethod
+    def update_state(self, chosen_action: WindowAction, window_state: WindowState) -> None:
         pass
 
     def state_abstraction(self, state: WindowState):

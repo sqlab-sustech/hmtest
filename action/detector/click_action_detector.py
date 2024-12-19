@@ -2,6 +2,7 @@ from collections import defaultdict
 from typing import List
 
 from action.element_locator import ElementLocator
+from action.impl.back_action import BackAction
 from action.impl.click_action import ClickAction
 from action.window_action import WindowAction
 from action.window_action_detector import WindowActionDetector
@@ -15,15 +16,16 @@ class ClickActionDetector(WindowActionDetector):
         pass
 
     def get_actions(self, driver: Driver) -> List[WindowAction]:
-        window_action_list = []
+        window_action_list: list[WindowAction] = []
         root = self.d.dump_hierarchy()
+        ability_name, page_path = self.d.get_ability_and_page()
 
         def dfs(node: dict, xpath: str):
             if node["attributes"]["clickable"] == "true":
                 bounds = parse_bounds(node["attributes"]["bounds"])
                 center = bounds.get_center()
                 window_action_list.append(
-                    ClickAction(ElementLocator.XPATH, xpath, center.x, center.y))
+                    ClickAction(ElementLocator.XPATH, xpath, center.x, center.y, ability_name, page_path))
             type_dict: dict[str, int] = defaultdict(lambda: 0)
             for child in node["children"]:
                 child_type = child["attributes"]["type"]
@@ -33,4 +35,5 @@ class ClickActionDetector(WindowActionDetector):
                 dfs(child, xpath + "/" + child_type + f"[{type_dict[child_type]}]")
 
         dfs(root, "/")
+        window_action_list.append(BackAction())
         return window_action_list

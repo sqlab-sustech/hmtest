@@ -57,6 +57,14 @@ class Driver:
     def stop_app(self, package_name: str):
         self.hdc.stop_app(package_name)
 
+    @delay
+    def force_stop_app(self):
+        # self.hdc.stop_app(package_name)
+        self.go_home()
+        self.hdc.swipe(1000, 2600, 1000, 1200, 1000)
+        self.hdc.swipe(600, 2000, 600, 1000, 5000)
+        # self.hdc.tap(600, 2400)
+
     def clear_app(self, package_name: str):
         """
         Clear the application's cache and data.

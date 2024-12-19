@@ -11,9 +11,9 @@ class RestartAction(WindowAction):
         self.ability_name = ability_name
 
     def execute(self, driver: Driver) -> None:
-        driver.stop_app(self.app)
+        driver.force_stop_app()
         driver.start_app(self.app, self.ability_name)
-        time.sleep(3)
+        # time.sleep(3)
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, RestartAction):
