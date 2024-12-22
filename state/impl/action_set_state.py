@@ -13,7 +13,17 @@ class ActionSetState(WindowState):
         self.page_path = page_path
 
     def similarity(self, other: WindowState) -> float:
-        return 0
+        if not isinstance(other, ActionSetState):
+            return 0
+        if self.ability_name != other.ability_name or self.page_path != other.page_path:
+            return 0
+        s = set(self.action_list)
+        t = set(other.action_list)
+        intersection = len(s.intersection(t))
+        union = len(s.union(t))
+        if union == 0:
+            return 0
+        return intersection / union
 
     def get_action_list(self) -> List[WindowAction]:
         # action_list = list(self.action_set)

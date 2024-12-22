@@ -9,18 +9,20 @@ from hmdriver2.proto import KeyCode
 
 
 class BackAction(WindowAction):
-    def __init__(self) -> None:
+    def __init__(self, ability_name, page_name) -> None:
         super().__init__()
         self.location = ""
+        self.ability_name = ability_name
+        self.page_name = page_name
 
     def execute(self, d: Driver) -> None:
         d.go_back()
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, BackAction)
+        return isinstance(other, BackAction) and self.ability_name == other.ability_name and self.page_name == other.page_name
 
     def __hash__(self) -> int:
-        return hash("BackAction")
+        return hash("BackAction") + hash(self.ability_name) + hash(self.page_name)
 
     # TODO:
     def __lt__(self, other: object) -> bool:
@@ -30,4 +32,4 @@ class BackAction(WindowAction):
             return type(self).__name__ < type(other).__name__
 
     def __str__(self) -> str:
-        return f'BackAction()'
+        return f'BackAction(), {self.ability_name}, {self.page_name}'

@@ -35,7 +35,7 @@ class QLearningAgent(Agent):
         self.AGENT_TYPE = "Q"
         self.ALPHA = 0.1
         self.GAMMA = 0.5
-        self.EPSILON = 0.5
+        self.EPSILON = 0.9
         self.INITIAL_Q_VALUE = 10.0
         self.R_REWARD = 10.0
         self.R_PENALTY = -9999.0
@@ -50,6 +50,8 @@ class QLearningAgent(Agent):
         self.use_ptg = use_ptg
         self.in_degree = defaultdict(int)
         self.calculate_in_degree()
+        self.transition_count: dict[tuple[int, int, int], int] = defaultdict(int)
+        self.total_action_count = 0
 
     def calculate_in_degree(self):
         for source_page, actions in self.PTG.items():
@@ -73,9 +75,10 @@ class QLearningAgent(Agent):
             self.q_table[1][1] = -99
             # self.q_table[2][0] = -99
 
+        ability_name, page_path = self.d.get_ability_and_page()
         if len(self.action_list) == 0:
             self.action_list.append(RestartAction(self.app, self.ability_name))
-            self.action_list.append(BackAction())
+            self.action_list.append(BackAction(ability_name, page_path))
             self.action_count[0] = 0
             self.action_count[1] = 0
         if isinstance(state, OutOfDomainState):
@@ -101,7 +104,7 @@ class QLearningAgent(Agent):
                 if self.use_ptg and state.page_path in self.PTG:
                     for obj in self.PTG[state.page_path]:
                         c, t = obj["component"], obj["targetPage"]
-                        if c == action.location:
+                        if c == action.location and state.page_path != t:
                             exist = True
                             next_page = t
                             break
@@ -109,33 +112,30 @@ class QLearningAgent(Agent):
                     if exist:
                         print("exist")
                         print(f"{state.page_path}, {c} -> {t}")
-                        # action_value[a_idx] = self.INITIAL_Q_VALUE + len(self.PTG[state.page_path])
-                        # action_value[a_idx] = 1000.0 + 100 * len(self.PTG[state.page_path])
-                        # action_value[a_idx] = 50.0 + 10 * len(self.PTG[state.page_path])
-                        # action_value[a_idx] = self.INITIAL_Q_VALUE
-                        if self.use_ptg:
-                            # action_value[a_idx] = self.INITIAL_Q_VALUE + 10 + len(self.PTG[next_page])
-                            # action_value[a_idx] = 12.0
-                            action_value[a_idx] = 12.0
-                            # action_value[a_idx] = self.INITIAL_Q_VALUE
+                        # 跳转
+                        if t:
+                            action_value[a_idx] = 10.4
+                        # 返回
                         else:
                             action_value[a_idx] = self.INITIAL_Q_VALUE
+                    elif self.in_degree[state.page_path] == 0 and isinstance(action, BackAction):
+                        action_value[a_idx] = -9999
                     else:
                         action_value[a_idx] = self.INITIAL_Q_VALUE
                 else:
                     action_value[a_idx] = self.INITIAL_Q_VALUE
                 # else:
                 #     action_value[a_idx] = self.INITIAL_Q_VALUE
-                if self.use_ptg:
-                    if isinstance(action, ClickAction) and "TabBar" in action.location:
-                        print("TabBar exist")
-                        action_value[a_idx] = 12.0
+                # if self.use_ptg:
+                #     if isinstance(action, ClickAction) and "TabBar" in action.location:
+                #         print("TabBar exist")
+                #         action_value[a_idx] = 10.5
             self.q_table[s_idx] = action_value
         else:
             s_idx = self.state_repr_list.index(state_instance)
         return s_idx
 
-    def get_reward(self, state_index):
+    def get_reward(self, prev_state_index, action_index, state_index):
         # if self.AGENT_TYPE == "W":
         #     s = "{}-{}-{}".format(self.previous_state, self.previous_action, state_index)
         #     self.trans_count[s] += 1
@@ -146,26 +146,37 @@ class QLearningAgent(Agent):
         # if isinstance(window_state, OutOfDomainState) or isinstance(window_state, SameUrlState):
         #     return 0
         action_count = self.action_count[self.previous_action]
-        if action_count == 1:
-            reward = 1.0
-        else:
-            reward = 1.0 / action_count
+        print(f"transition: {prev_state_index}, {action_index}, {state_index}")
+        self.transition_count[(prev_state_index, action_index, state_index)] += 1
+        # if action_count == 1:
+        #     reward = 1.0
+        # else:
+        #     reward = 1.0 / action_count
+        # reward = 1.0 / math.sqrt(action_count)
+        reward = 1.0 / self.transition_count[(prev_state_index, action_index, state_index)]
+        print(f"reward: {reward}")
+        with open("output/log.txt", "a") as f:
+            f.write(f"transition: {prev_state_index}, {action_index}, {state_index}\n")
+            f.write(f"reward: {reward}\n")
+        # reward = 1.0 / math.sqrt(self.state_count[state_index] + 1)
+        # 负奖励，与访问次数相关
+        # penalty = 0.1 * self.state_count[state_index]
         # 如果是第一次访问
-        ability_name, page_path = self.d.get_ability_and_page()
+        # ability_name, page_path = self.d.get_ability_and_page()
         # if self.state_count[state_index] == 1:
-        if self.use_ptg:
-            if page_path:
-                if self.page_path_count[page_path] == 0 and page_path in self.PTG:
-                    # 获取出度
-                    # out_degree = len(self.PTG[state_index])
-                    out_degree = len(self.PTG[page_path])
-                    # 定义一个系数来平衡奖励大小，可根据实验调整
-                    bonus_factor = 1.0
-                    bonus = out_degree * bonus_factor
-
-                    # 额外奖励叠加
-                    reward += bonus
-                self.page_path_count[page_path] += 1
+        # if self.use_ptg:
+        #     if page_path:
+        #         if self.page_path_count[page_path] == 0 and page_path in self.PTG:
+        #             # 获取出度
+        #             # out_degree = len(self.PTG[state_index])
+        #             out_degree = len(self.PTG[page_path])
+        #             # 定义一个系数来平衡奖励大小，可根据实验调整
+        #             bonus_factor = 0.25
+        #             bonus = out_degree * bonus_factor
+        #
+        #             # 额外奖励叠加
+        #             reward += bonus
+        #         self.page_path_count[page_path] += 1
         return reward
 
     # def update(self, window_state_index, window_state):
@@ -195,11 +206,8 @@ class QLearningAgent(Agent):
     def update(self, state_index, action_index):
         ps_q_values = self.q_table[self.previous_state]
         cs_q_values = self.q_table[state_index]
-        reward = self.get_reward(state_index)
-        try:
-            q_predict = ps_q_values[action_index]
-        except KeyError:
-            print(ps_q_values)
+        reward = self.get_reward(self.previous_state, action_index, state_index)
+        q_predict = ps_q_values[action_index]
         if self.AGENT_TYPE == "Q":
             action_len = 1
             # if isinstance(window_state, ActionExecuteFailedState):
@@ -229,9 +237,10 @@ class QLearningAgent(Agent):
     def get_action(self, window_state: WindowState):
         actions = window_state.get_action_list()
         # TODO: Add ActionExecuteFailedState and RestartAction
+        ability_name, page_path = self.d.get_ability_and_page()
         chosen_action = None
         if len(actions) == 0:
-            chosen_action = BackAction()
+            chosen_action = BackAction(ability_name, page_path)
             # raise NoActionsException("The state does not have any actions")
 
         stop_update = False
@@ -240,6 +249,8 @@ class QLearningAgent(Agent):
         self.state_count[state_index] += 1
         # x = random.uniform(0, 1)
         x = random.random()
+        with open("output/log.txt", "a") as f:
+            f.write(str(x) + "\n")
         print(x)
         # if chosen_action or 0 <= x < self.EPSILON:
         #     print("q-learning")
@@ -273,14 +284,13 @@ class QLearningAgent(Agent):
         #     print("random back")
         #     chosen_action = BackAction()
         #     max_val = self.q_table[state_index][self.get_action_index(chosen_action)]
-        ability_name, page_path = self.d.get_ability_and_page()
         if chosen_action:
             max_val = self.q_table[state_index][self.get_action_index(chosen_action)]
         elif len(actions) == 1 and isinstance(actions[0], RestartAction):
             chosen_action = actions[0]
             max_val = self.q_table[state_index][self.get_action_index(chosen_action)]
         else:
-            if x < 0.5:
+            if x < self.EPSILON:
                 with open("output/log.txt", "a") as f:
                     f.write("q-learning" + "\n")
                 print("q-learning")
@@ -289,10 +299,10 @@ class QLearningAgent(Agent):
                 max_actions = [chosen_action]
                 for i in range(1, len(actions)):
                     temp_action = actions[i]
-                    if isinstance(temp_action, RestartAction):
-                        chosen_action = temp_action
-                        max_actions = [temp_action]
-                        break
+                    # if isinstance(temp_action, RestartAction):
+                    #     chosen_action = temp_action
+                    #     max_actions = [temp_action]
+                    #     break
                     if self.q_table[state_index][self.get_action_index(temp_action)] > max_val:
                         max_val = self.q_table[state_index][self.get_action_index(temp_action)]
                         chosen_action = temp_action
@@ -300,17 +310,22 @@ class QLearningAgent(Agent):
                     elif self.q_table[state_index][self.get_action_index(temp_action)] == max_val:
                         max_actions.append(temp_action)
                 chosen_action = random.choice(max_actions)
-            elif 0.5 <= x < (1 if self.use_ptg and self.in_degree[page_path] == 0 else 0.85):
+                print(chosen_action)
+            # elif 0.5 <= x < (1 if self.use_ptg and self.in_degree[page_path] == 0 else 1):
+            else:
                 with open("output/log.txt", "a") as f:
                     f.write("random" + "\n")
                 print("random")
                 max_val = max(self.q_table[state_index].values())
                 # chosen_action = random.choice(actions)
-                temp_actions = [action for action in actions if action != BackAction()]
-                if temp_actions:
-                    chosen_action = random.choice(temp_actions)
+                if self.use_ptg and self.in_degree[page_path] == 0:
+                    temp_actions = [action for action in actions if not isinstance(action, BackAction)]
+                    if temp_actions:
+                        chosen_action = random.choice(temp_actions)
+                    else:
+                        chosen_action = BackAction(ability_name, page_path)
                 else:
-                    chosen_action = BackAction()
+                    chosen_action = random.choice(actions)
                 # # 基础参数设置
                 # unvisited_bonus = 5.0  # 未访问过的状态附加高权重
                 # out_degree_factor = 0.1  # 根据出度增加的权重系数
@@ -337,12 +352,12 @@ class QLearningAgent(Agent):
                 #         # 简单示例：每访问10次，该状态的探索价值减半
                 #         w = w / (1 + (visit_count / 10.0))
                 #      weights
-            else:
-                with open("output/log.txt", "a") as f:
-                    f.write("random back" + "\n")
-                print("random back")
-                chosen_action = BackAction()
-                max_val = self.q_table[state_index][self.get_action_index(chosen_action)]
+            # else:
+            #     with open("output/log.txt", "a") as f:
+            #         f.write("random back" + "\n")
+            #     print("random back")
+            #     chosen_action = BackAction()
+            #     max_val = self.q_table[state_index][self.get_action_index(chosen_action)]
 
         self.action_count[self.get_action_index(chosen_action)] += 1
         # if self.previous_state is not None and self.previous_action is not None:
@@ -351,9 +366,14 @@ class QLearningAgent(Agent):
         # self.previous_state = state_index
         # self.previous_action = self.get_action_index(chosen_action)
         print("max_q_value: ", max_val, "  chosen_action: ", chosen_action)
+        with open("output/log.txt", "a") as f:
+            f.write(f"max_q_value: {max_val}  chosen_action: {chosen_action}\n")
         print(self.state_count)
         print(self.action_count)
         print(self.q_table)
+        self.total_action_count += 1
+        # decay_rate = (0.5 - 0.2) / 80
+        # self.EPSILON = max(self.EPSILON - decay_rate * self.total_action_count, 0.2)
         return chosen_action
 
     def update_state(self, chosen_action: WindowAction, window_state: WindowState) -> None:

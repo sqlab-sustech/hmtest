@@ -13,15 +13,19 @@
  * limitations under the License.
  */
 
-import {SceneConfig} from '../src/Config';
-import {Scene} from '../src/Scene';
+import { SceneConfig } from '../src/Config';
+import { Scene } from '../src/Scene';
 import fs from 'fs';
-import {CallGraphNode, FileSignature, MethodSignature, ViewTreeNode} from '../src';
+import { CallGraphNode, FileSignature, MethodSignature, ViewTreeNode } from '../src';
 
 // fs.unlinkSync("./PTG.dot");
 if (fs.existsSync('./PTG.json')) {
     fs.unlinkSync('./PTG.json');
 }
+
+const moduleName = process.argv[2];
+
+// projectScene.getClasses().filter(clazz => clazz.getName() == "CommodityConstants")[0].getStaticFieldWithName("CONFIRM_ORDER_PAGE_URL").getInitializer()[0].rightOp.value
 
 let config: SceneConfig = new SceneConfig();
 
@@ -36,7 +40,8 @@ function readMainPagesFromJson(fileName: string): string[] {
     let configurations = JSON.parse(configText);
     projectName = configurations.targetProjectName;
     targetProjectDirectory = configurations.targetProjectDirectory;
-    const mainPagesFile = `${targetProjectDirectory}/entry/src/main/resources/base/profile/main_pages.json`;
+    const mainPagesFile = `${targetProjectDirectory}/${moduleName}/src/main/resources/base/profile/main_pages.json`;
+    // const mainPagesFile = `${targetProjectDirectory}/entry/src/main/resources/base/profile/main_pages.json`;
     // const mainPagesFile = `${targetProjectDirectory}/products/phone/src/main/resources/base/profile/main_pages.json`;
     configText = fs.readFileSync(mainPagesFile, 'utf-8');
     configurations = JSON.parse(configText);
@@ -70,7 +75,8 @@ function runScene4Json(config: SceneConfig) {
 
     // let classes = projectScene.getClasses();
     for (const pageName of mainPages) {
-        const signature = new FileSignature(projectName, `entry/src/main/ets/${pageName}.ets`);
+        const signature = new FileSignature(projectName, `${moduleName}/src/main/ets/${pageName}.ets`);
+        // const signature = new FileSignature(projectName, `entry/src/main/ets/${pageName}.ets`);
         // const signature = new FileSignature(projectName, `products/phone/src/main/ets/${pageName}.ets`);
         const file = projectScene.getFile(signature);
         if (file) {
@@ -120,8 +126,14 @@ function runScene4Json(config: SceneConfig) {
                                     const matches = [...code.matchAll(urlPattern)];
                                     for (const match of matches) {
                                         let targetPageName = match[1];
+                                        if (!mainPages.includes(targetPageName)) {
+                                            continue;
+                                        }
                                         if (targetPageName.startsWith('/')) {
                                             targetPageName = targetPageName.slice(1);
+                                        }
+                                        if (!mainPages.includes(targetPageName)) {
+                                            continue;
                                         }
                                         if (node?.isCustomComponent()) {
                                             // console.log([pageName, component + "/__Common__[1]", targetPageName]);
@@ -131,6 +143,12 @@ function runScene4Json(config: SceneConfig) {
                                             // console.log([pageName, component, targetPageName]);
                                             addEdge(pageName, component, targetPageName);
                                         }
+                                    }
+                                } else if (code?.includes('router.back')) {
+                                    if (node?.isCustomComponent()) {
+                                        addEdge(pageName, component + '/__Common__[1]', "");
+                                    } else {
+                                        addEdge(pageName, component, "");
                                     }
                                 }
                                 if (methodSignature instanceof MethodSignature) {

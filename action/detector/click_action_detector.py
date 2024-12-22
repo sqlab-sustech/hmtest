@@ -35,5 +35,5 @@ class ClickActionDetector(WindowActionDetector):
                 dfs(child, xpath + "/" + child_type + f"[{type_dict[child_type]}]")
 
         dfs(root, "/")
-        window_action_list.append(BackAction())
+        window_action_list.append(BackAction(ability_name, page_path))
         return window_action_list
