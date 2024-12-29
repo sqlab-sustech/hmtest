@@ -12,6 +12,7 @@ from action.impl.back_action import BackAction
 from action.impl.click_action import ClickAction
 from action.impl.restart_action import RestartAction
 from action.window_action import WindowAction
+from agent.impl.dfs_agent import DFSAgent
 from agent.impl.q_learning_agent import QLearningAgent
 from agent.impl.random_agent import RandomAgent
 from config import LogConfig
@@ -60,6 +61,8 @@ class AppTest:
                     self.PTG = json.load(f)
         if agent_type == "random":
             self.agent = RandomAgent()
+        elif "dfs" in agent_type:
+            self.agent = DFSAgent(self.d, self.app, self.ability_name, self.PTG)
         elif agent_type == "q-learning" or agent_type == "dynamic-q-learning":
             self.agent = QLearningAgent(self.d, self.app, self.ability_name, self.PTG, False)
         else:
@@ -83,7 +86,7 @@ class AppTest:
         # 有时候bm dump会卡住
         # app_info = self.d.get_app_info(self.app)
         # return app_info["hapModuleInfos"][0]["mainAbility"]
-        if self.module_name == "products/phone":
+        if self.app == "com.itcast.pass_interview":
             return "PhoneAbility"
         return "EntryAbility"
 
@@ -91,6 +94,25 @@ class AppTest:
         # self.d.stop_app(self.app)
         logger.info("Execution start")
         self.d.start_app(self.app, self.ability_name)
+        if self.app == "com.itcast.pass_interview":
+            time.sleep(1.5)
+            self.d.xpath("//root[1]/Flex[1]/Tabs[1]/TabBar[1]/Column[4]").click_if_exists()
+            self.d.xpath("//root[1]/Flex[1]/Tabs[1]/Swiper[1]/TabContent[1]/Column[1]/Row[1]/Text[1]").click_if_exists()
+            self.d.xpath(
+                "//root[1]/Column[1]/Navigation[1]/NavBar[1]/NavBarContent[1]/Column[1]/Column[2]/Row[1]/Checkbox[1]").click_if_exists()
+            self.d.xpath(
+                "//root[1]/Column[1]/Navigation[1]/NavBar[1]/NavBarContent[1]/Column[1]/Column[2]/Button[1]").click_if_exists()
+            self.d.force_stop_app()
+            self.d.start_app(self.app, self.ability_name)
+        if self.app == "com.huawei.hmos.world":
+            time.sleep(1.5)
+            self.d.xpath("//root[1]/GridRow[1]/GridCol[1]/Column[1]/Row[1]/Button[2]").click_if_exists()
+            self.d.xpath("//root[1]/Column[1]/Stack[1]/Button[1]").click_if_exists()
+            self.d.xpath("//root[1]/Stack[1]/GridRow[1]/GridCol[1]/Column[1]/Button[1]").click_if_exists()
+            time.sleep(1)
+            self.d.xpath("//root[1]/Stack[1]/Scroll[1]/Column[1]/Button[1]").click_if_exists()
+        # if self.app == "com.legado.app" or self.app == "com.itcast.pass_interview":
+        time.sleep(1.5)
         # self.stop_event.wait(3)
         action_list = self.action_detector.get_actions(self.d)
         ability_name, page_path = self.d.get_ability_and_page()
@@ -126,8 +148,8 @@ class AppTest:
             with self.lock:
                 prev_state_count = len(self.state_dict)
             chosen_action.execute(self.d)
-            # if isinstance(chosen_action, RestartAction):
-            #     pass
+            # if (self.app == "com.legado.app" or self.app == "com.itcast.pass_interview") and isinstance(chosen_action, RestartAction):
+            time.sleep(1.5)
             # pass
             # self.stop_event.wait(3)
             # 跳转到目前覆盖数最少的状态
@@ -206,6 +228,8 @@ class AppTest:
                     f.write(f"{self.state_count, self.same_page_count}" + "\n")
                 self.action_count += 1
                 RestartAction(self.app, self.ability_name).execute(self.d)
+                # if (self.app == "com.legado.app" or self.app == "com.itcast.pass_interview") and isinstance(chosen_action, RestartAction):
+                time.sleep(1.5)
                 # self.stop_event.wait(3)
                 action_list = self.action_detector.get_actions(self.d)
                 ability_name, page_path = self.d.get_ability_and_page()

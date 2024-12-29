@@ -144,13 +144,14 @@ function runScene4Json(config: SceneConfig) {
                                             addEdge(pageName, component, targetPageName);
                                         }
                                     }
-                                } else if (code?.includes('router.back')) {
-                                    if (node?.isCustomComponent()) {
-                                        addEdge(pageName, component + '/__Common__[1]', "");
-                                    } else {
-                                        addEdge(pageName, component, "");
-                                    }
                                 }
+                                // else if (code?.includes('router.back')) {
+                                //     if (node?.isCustomComponent()) {
+                                //         addEdge(pageName, component + '/__Common__[1]', "");
+                                //     } else {
+                                //         addEdge(pageName, component, "");
+                                //     }
+                                // }
                                 if (methodSignature instanceof MethodSignature) {
                                     // @ts-ignore
                                     let callGraph = projectScene.makeCallGraphCHA([methodSignature]);
@@ -239,7 +240,7 @@ function runScene4Json(config: SceneConfig) {
                                     } else if (child.name === 'Builder') {
                                         if (node?.name === 'Tabs') {
                                             dfs(child, component + `/TabBar[1]/Column[${componentNum}]`, new Map<string, number>());
-                                            addEdge(pageName, component + `/TabBar[1]/Column[${componentNum}]`, pageName);
+                                            // addEdge(pageName, component + `/TabBar[1]/Column[${componentNum}]`, pageName);
                                         }
                                         // else {
                                         //     dfs(child, component, typeMap);

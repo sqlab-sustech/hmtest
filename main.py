@@ -104,12 +104,16 @@ def get_coverage(t, module_name, self: AppTest):
 
 
 projects = [
-    # ("com.legado.app", "/Users/chenyige/Desktop/project/OpenHarmonyProjects/legado-Harmony", "entry"),
     ("cn.icheny.wechat", "/Users/chenyige/Desktop/project/OpenHarmonyProjects/Wechat_HarmonyOS", "entry"),
-    ("zone.yby.seamusic", "/Users/chenyige/Desktop/project/OpenHarmonyProjects/harmony-next-music-sharing", "entry"),
-    ("com.example.harmonyhelloworld", "/Users/chenyige/Desktop/project/OpenHarmonyProjects/harmonyProject", "entry"),
+    # ("zone.yby.seamusic", "/Users/chenyige/Desktop/project/OpenHarmonyProjects/harmony-next-music-sharing", "entry"),
+    # ("com.example.harmonyhelloworld", "/Users/chenyige/Desktop/project/OpenHarmonyProjects/harmonyProject", "entry"),
+    # ("com.legado.app", "/Users/chenyige/Desktop/project/OpenHarmonyProjects/legado-Harmony", "entry"),
     # ("com.itcast.pass_interview", "/Users/chenyige/Desktop/project/OpenHarmonyProjects/interview-handbook-project", "products/phone"),
-
+    # ("com.huawei.hmos.world", "/Users/chenyige/Desktop/project/OpenHarmonyProjects/hmosworld", "products/phone")
+    # ("com.example.healthy_life", "/Users/chenyige/Desktop/project/OpenHarmonyProjects/Health-Life-HarmonyOS-Next", "entry"),
+    # ("com.huawei.videoapplication", "/Users/chenyige/Desktop/project/OpenHarmonyProjects/MultiVideoApplication", "products/phone"),
+    # ("com.example.multdevicecommunication", "/Users/chenyige/Desktop/project/OpenHarmonyProjects/MultiDeviceCommunication", "products/phone"),
+    # ("com.sina.weibo.stage", "", "")
 ]
 
 
@@ -136,7 +140,8 @@ def main(t, app, project_path, module_name, method, use_ptg, use_dfa):
 
     if use_ptg and project_path:
         get_ptg(project_path, module_name)
-    install_hap(app, project_path, module_name, product_name)
+    if project_path:
+        install_hap(app, project_path, module_name, product_name)
 
     # if method == "random":
     #     agent_type = RandomAgent
@@ -165,34 +170,38 @@ def main(t, app, project_path, module_name, method, use_ptg, use_dfa):
 if __name__ == '__main__':
     # methods = ["static-q-learning", "q-learning"]
     # methods = ["q-learning", "static-q-learning"]
-    methods = ["q-learning", "static-q-learning", "dynamic-q-learning", "static-dynamic-q-learning"]
+    # methods = ["q-learning", "static-q-learning", "dynamic-q-learning", "static-dynamic-q-learning"]
     # methods = ["q-learning", "dynamic-q-learning", "static-q-learning", "static-dynamic-q-learning"]
     # methods = ["q-learning",  "static-dynamic-q-learning", "static-q-learning"]
     # methods = ["q-learning", "static-q-learning", "dynamic-q-learning", "static-dynamic-q-learning"]
     # methods = ["q-learning", "dynamic-q-learning", "static-q-learning", "static-dynamic-q-learning"]
-    # methods = ["q-learning"]
+    methods = ["random", "q-learning", "dynamic-q-learning"]
     # methods = ["static-dynamic-q-learning"]
     # methods = ["dynamic-q-learning"]
+    # methods = ["static-dfs", "q-learning", "dynamic-q-learning"]
+    # methods = ["static-dfs"]
+    # methods = ["dynamic-q-learning"]
     for t in [10]:
-        for seed in range(1, 6):
+        for seed in range(1, 11):
             for app, project_path, module_name in projects:
                 for method in methods:
-                    key = "ShiYuQi"
                     if not os.path.exists(
-                            f"/Users/chenyige/Desktop/hmtest-result/{app}.{key}/{method}/{seed}/output{t}"):
-                        print(f"/Users/chenyige/Desktop/hmtest-result/{app}.{key}/{method}/{seed}/output{t}")
+                            f"/Users/chenyige/Desktop/hmtest-result/{app}/{method}/{seed}/output{t}"):
+                        print(f"/Users/chenyige/Desktop/hmtest-result/{app}/{method}/{seed}/output{t}")
                         # seed = 1
                         print("app, t, method, seed: ", app, t, method, seed)
                         random.seed(seed)
                         # print(random.random())
                         try:
-                            main(t * 60, app, project_path, module_name, method, "static" in method, "dynamic" in method)
+                            main(t * 60, app, project_path, module_name, method, "static" in method,
+                                 "dynamic" in method)
                             # shutil.move("./output", f"/Users/chenyige/Desktop/new-result/Wechat_HarmonyOS/random/{seed}/output{t}")
                             # shutil.move("./output", f"/Users/chenyige/Desktop/new-result/Wechat_HarmonyOS/q-learning/{seed}/output{t}")
                             # shutil.move("./output", f"/Users/chenyige/Desktop/new-result/zone.yby.seamusic/{method}/{seed}/output{t}")
                             shutil.move("./output",
-                                        f"/Users/chenyige/Desktop/hmtest-result/{app}.{key}/{method}/{seed}/output{t}")
+                                        f"/Users/chenyige/Desktop/hmtest-result/{app}/{method}/{seed}/output{t}")
                             print(f"{app}, {t}, {method}, {seed}, finish!")
                         except Exception as e:
                             with open("exception.txt", "a") as f:
                                 f.write(f"app, method, t, seed, {app}, {method}, {t}, {seed}, {str(e)}\n")
+                            raise e
