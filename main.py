@@ -13,7 +13,7 @@ from hmdriver2.driver import Driver
 
 
 def main(serial, app, project_path, module_name, product_name, t):
-    os.system("rm -rf output")
+    shutil.rmtree("output")
     d = Driver(serial)
     product_name = "default"
     # if use_ptg and project_path:

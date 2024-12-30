@@ -129,7 +129,7 @@ class HdcWrapper:
         return result
 
     def install(self, apkpath: str):
-        result = _execute_command(f"hdc -t {self.serial} install '{apkpath}'")
+        result = _execute_command(f"hdc -t {self.serial} install {apkpath}")
         if result.exit_code != 0:
             raise HdcError("HDC install error", result.error)
         return result

@@ -145,11 +145,11 @@ class AppTest:
             self.ability_count_dict[ability_name] = self.ability_count_dict.get(ability_name, 0) + 1
             self.page_count_dict[page_path] = self.page_count_dict.get(page_path, 0) + 1
         logger.info(f"Initial state: {self.current_state}")
+        self.start_time = start_time = time.time()
         self.data_thread = threading.Thread(target=self.save_tmp_data)
         self.data_thread.daemon = True  # 将线程设置为守护线程，主线程退出时它也会退出
         self.data_thread.start()
         pre_page_path = page_path
-        start_time = time.time()
         while time.time() - start_time <= self.test_time:
             chosen_action = self.agent.get_action(self.current_state)
             logger.info(f"Chosen action: {chosen_action}")
@@ -530,7 +530,7 @@ class AppTest:
 
     def save_tmp_data(self):
         t = 0
-        while t * self.record_interval <= self.test_time:
+        while time.time() - self.start_time <= self.test_time:
             # s = f"{t},{len(self.ability_count_dict)},{len(self.page_count_dict)},{len(self.state_dict)},{self.action_count}\n"
             # res += s
             # print(s)
@@ -546,18 +546,20 @@ class AppTest:
                         "all_state_count": len(self.all_states)
                     }, f, indent=4, sort_keys=True,
                 )
-            time.sleep(self.record_interval)  # 每隔一秒打印一次
+            for _ in range(self.record_interval):
+                if time.time() - self.start_time > self.test_time:
+                    break
+                time.sleep(1)
             t += 1
 
     def install_hap(self, app, project_path, module_name, product_name):
         signed_hap = f"{project_path}/{module_name}/build/default/outputs/default/{module_name.split('/')[-1]}-default-signed.hap"
         instrument_cmd = f"hvigorw --mode module -p module={module_name.split('/')[-1]}@{product_name} -p product={product_name} -p buildMode=test -p ohos-test-coverage=true -p coverage-mode=black assembleHap --parallel --incremental --daemon"
         print(instrument_cmd)
-        os.system(
-            f"cd {project_path} && rm -rf cache report {module_name}/.test {module_name}/build && {instrument_cmd}")
+        del_cmd = f"powershell -Command Remove-Item -Recurse -Force cache, report, {module_name}/.test, {module_name}/build" if os.name == "nt" else f"rm -rf cache report {module_name}/.test {module_name}/build"
+        os.system(f"cd {project_path} & {del_cmd} & {instrument_cmd}")
         self.d.uninstall_app(app)
         self.d.install_app(signed_hap)
-        os.system("rm -rf cache report")
 
     def get_ptg(self, project_path, module_name):
         if os.path.exists("./PTG.json"):
@@ -581,7 +583,8 @@ class AppTest:
     def get_coverage(self, module_name, t):
         data_cmd = f"hdc file recv data/app/el2/100/base/{self.app}/haps/{module_name.split('/')[-1]}/cache {self.project_path}"
         report_cmd = f"hvigorw collectCoverage -p projectPath={self.project_path} -p reportPath={self.project_path}/report -p coverageFile={self.project_path}/{module_name}/.test/default/intermediates/ohosTest/init_coverage.json#{self.project_path}/cache"
-        os.system(f"cd {self.project_path} && rm -rf cache report && {data_cmd} && {report_cmd}")
+        del_cmd = "powershell -Command Remove-Item -Recurse -Force cache, report" if os.name == "nt" else "rm -rf cache report"
+        os.system(f"cd {self.project_path} & {del_cmd} & {data_cmd} & {report_cmd}")
 
         try:
             with open(f"{self.project_path}/report/index.html") as f:
