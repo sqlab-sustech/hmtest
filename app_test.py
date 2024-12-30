@@ -3,19 +3,23 @@ import logging
 import os.path
 import pickle
 import random
+import shutil
 import threading
 import time
 from collections import defaultdict, deque
 
+import yaml
+from bs4 import BeautifulSoup
+
+import utils
 from action.detector.click_action_detector import ClickActionDetector
 from action.impl.back_action import BackAction
 from action.impl.click_action import ClickAction
 from action.impl.restart_action import RestartAction
 from action.window_action import WindowAction
-from agent.impl.dfs_agent import DFSAgent
 from agent.impl.q_learning_agent import QLearningAgent
-from agent.impl.random_agent import RandomAgent
 from config import LogConfig
+from config.custom_json_encoder import CustomJSONEncoder
 from hmdriver2.driver import Driver
 from state.impl.action_set_state import ActionSetState
 from state.impl.out_of_domain_state import OutOfDomainState
@@ -25,17 +29,17 @@ from state.window_state import WindowState
 logger = logging.getLogger(__name__)
 logger.addHandler(LogConfig.get_file_handler())
 
+CONFIG = {}
+
 
 class AppTest:
-    def __init__(self, serial: str, app: str, project_path: str, use_ptg: bool, use_dfa: bool, agent_type, module_name,
-                 TIME):
+    def __init__(self, serial: str, app: str, project_path: str, module_name: str, product_name: str, TIME):
         super().__init__()
         self.d: Driver = Driver(serial)
         self.app = app
-        # self.open_sourced = open_sourced
         self.project_path = project_path
-        self.use_ptg = use_ptg
-        self.use_dfa = use_dfa
+        self.use_ptg = False
+        self.use_dfa = False
         self.action_detector = ClickActionDetector(self.d)
         self.state_class = ActionSetState
         self.prev_state: WindowState | None = None
@@ -55,25 +59,18 @@ class AppTest:
         self.similar_states = defaultdict(list)
         self.all_states = set()
         self.module_name = module_name
+        self.product_name = product_name
+        profile_config = self.read_config()
         if self.use_ptg and self.project_path:
+            self.get_ptg(self.project_path, self.module_name)
             if os.path.exists("PTG.json"):
                 with open("PTG.json", "r", encoding="utf-8") as f:
                     self.PTG = json.load(f)
-        if agent_type == "random":
-            self.agent = RandomAgent()
-        elif "dfs" in agent_type:
-            self.agent = DFSAgent(self.d, self.app, self.ability_name, self.PTG)
-        elif agent_type == "q-learning" or agent_type == "dynamic-q-learning":
-            self.agent = QLearningAgent(self.d, self.app, self.ability_name, self.PTG, False)
-        else:
-            self.agent = QLearningAgent(self.d, self.app, self.ability_name, self.PTG, True)
-        # self.agent = QLearningAgent(self.d, self.app, self.ability_name, self.PTG)
-        # self.agent = RandomAgent()
-        # self.agent = DFSAgent(self.d, self.app, self.ability_name, self.PTG)
-        # self.stop_event = threading.Event()
+        if self.project_path:
+            self.install_hap(self.app, self.project_path, self.module_name, self.product_name)
+        self.agent = self.agent_class(self.d, self.app, self.ability_name, self.PTG, self.use_ptg, profile_config)
         self.lock = threading.Lock()
         self.transition_record_count: dict[tuple[WindowState, WindowAction, WindowState], int] = defaultdict(int)
-        self.TIME = TIME
         if os.path.exists("output"):
             os.removedirs("output")
         os.makedirs("output", exist_ok=True)
@@ -81,14 +78,35 @@ class AppTest:
         if os.path.exists("output/coverage.csv"):
             os.remove("output/coverage.csv")
 
+    def read_config(self):
+        with open("settings.yaml", 'r') as file:
+            global CONFIG
+            CONFIG = yaml.safe_load(file)
+            self.default_profile = CONFIG.get("default_profile", None)
+            self.output_path = CONFIG.get("output_path", "output")
+            self.record_interval = CONFIG.get("record_interval", 60)
+            self.test_time = CONFIG.get("test_time", 60)
+            self.profiles = CONFIG.get("profiles", None)
+            for profile in self.profiles:
+                if profile.get("name", None) == self.default_profile:
+                    agent_info = profile.get("agent", None)
+                    self.agent_class = utils.get_class_by_module_and_class_name(agent_info.get("module", None),
+                                                                                agent_info.get("class", None))
+                    if profile.get("use_ptg") == True:
+                        self.use_ptg = True
+                    if profile.get("recovery") == True:
+                        self.use_dfa = True
+                    return profile
+            return None
+
     @property
     def ability_name(self):
         # 有时候bm dump会卡住
-        # app_info = self.d.get_app_info(self.app)
-        # return app_info["hapModuleInfos"][0]["mainAbility"]
-        if self.app == "com.itcast.pass_interview":
-            return "PhoneAbility"
-        return "EntryAbility"
+        app_info = self.d.get_app_info(self.app)
+        return app_info["hapModuleInfos"][0]["mainAbility"]
+        # if self.app == "com.itcast.pass_interview":
+        #     return "PhoneAbility"
+        # return "EntryAbility"
 
     def start_test(self):
         # self.d.stop_app(self.app)
@@ -131,7 +149,7 @@ class AppTest:
         self.data_thread.start()
         pre_page_path = page_path
         start_time = time.time()
-        while time.time() - start_time <= self.TIME:
+        while time.time() - start_time <= self.test_time:
             chosen_action = self.agent.get_action(self.current_state)
             logger.info(f"Chosen action: {chosen_action}")
             print(f"Chosen action: {chosen_action}")
@@ -275,13 +293,14 @@ class AppTest:
                 self.state_count = self.same_page_count = 0
                 action_list = self.action_detector.get_actions(self.d)
                 ability_name, page_path = self.d.get_ability_and_page()
-                self.prev_state = self.current_state = self.pre_process(
-                    self.state_class(action_list, ability_name, page_path))
+                self.prev_state = self.current_state = self.pre_process(self.state_class(action_list, ability_name, page_path))
                 # self.state_dict[self.current_state] = self.state_dict.get(self.current_state, 0) + 1
         self.data_thread.join()
         self.save_final_data()
         # self.d.stop_app(self.app)
         self.d.force_stop_app()
+        if self.project_path:
+            self.get_coverage(self.module_name, self.test_time)
 
     def add_new_state_to_list(self, new_state: WindowState):
         for state in self.state_dict.keys():
@@ -509,13 +528,13 @@ class AppTest:
 
     def save_tmp_data(self):
         t = 0
-        while t <= self.TIME:
+        while t * self.record_interval <= self.test_time:
             # s = f"{t},{len(self.ability_count_dict)},{len(self.page_count_dict)},{len(self.state_dict)},{self.action_count}\n"
             # res += s
             # print(s)
             ability_count_dict = self.ability_count_dict.copy()
             page_count_dict = self.page_count_dict.copy()
-            with open(f"output/data/{t}.json", "w") as f:
+            with open(f"output/data/{t * self.record_interval}.json", "w") as f:
                 json.dump(
                     {
                         "ability_count": ability_count_dict,
@@ -525,8 +544,60 @@ class AppTest:
                         "all_state_count": len(self.all_states)
                     }, f, indent=4, sort_keys=True,
                 )
-            time.sleep(1)  # 每隔一秒打印一次
+            time.sleep(self.record_interval)  # 每隔一秒打印一次
             t += 1
 
-    # def stop(self):
-    #     self.d.force_stop_app()
+    def install_hap(self, app, project_path, module_name, product_name):
+        signed_hap = f"{project_path}/{module_name}/build/default/outputs/default/{module_name.split('/')[-1]}-default-signed.hap"
+        instrument_cmd = f"hvigorw --mode module -p module={module_name.split('/')[-1]}@{product_name} -p product={product_name} -p buildMode=test -p ohos-test-coverage=true -p coverage-mode=black assembleHap --parallel --incremental --daemon"
+        print(instrument_cmd)
+        os.system(
+            f"cd {project_path} && rm -rf cache report {module_name}/.test {module_name}/build && {instrument_cmd}")
+        self.d.uninstall_app(app)
+        self.d.install_app(signed_hap)
+        os.system("rm -rf cache report")
+
+    def get_ptg(self, project_path, module_name):
+        if os.path.exists("./PTG.json"):
+            os.remove("./PTG.json")
+        project_name = project_path.split("/")[-1]
+        configurations = {
+            "targetProjectName": f"{project_name}",
+            "targetProjectDirectory": f"{project_path}",
+            "logPath": "arkanalyzer/ArkAnalyzer.log",
+            "logLevel": "INFO",
+            "sdks": [],
+            "options": {
+                "enableLeadingComments": True
+            }
+        }
+        with open("arkanalyzer/tests/AppTestConfig.json", "w") as f:
+            json.dump(configurations, f, indent=4, cls=CustomJSONEncoder)
+        os.system(f"cd arkanalyzer && node -r ts-node/register tests/AppTest.ts {module_name}")
+        shutil.move("arkanalyzer/PTG.json", "./PTG.json")
+
+    def get_coverage(self, module_name, t):
+        data_cmd = f"hdc file recv data/app/el2/100/base/{self.app}/haps/{module_name.split('/')[-1]}/cache {self.project_path}"
+        report_cmd = f"hvigorw collectCoverage -p projectPath={self.project_path} -p reportPath={self.project_path}/report -p coverageFile={self.project_path}/{module_name}/.test/default/intermediates/ohosTest/init_coverage.json#{self.project_path}/cache"
+        os.system(f"cd {self.project_path} && rm -rf cache report && {data_cmd} && {report_cmd}")
+
+        try:
+            with open(f"{self.project_path}/report/index.html") as f:
+                html = f.read()
+            soup = BeautifulSoup(html, 'html.parser')
+            coverage_divs = soup.select('.clearfix > .fl.pad1y.space-right2')
+            # Coverages: [Statements, Branches, Functions, Lines]
+            results = []
+            for div in coverage_divs:
+                percentage = div.find('span', class_='strong').text.strip()
+                metric_name = div.find('span', class_='quiet').text.strip()
+                fraction = div.find('span', class_='fraction').text.strip()
+                results.append((percentage, fraction))
+            line = f"{t},{results[0][0]};{results[0][1]},{results[1][0]};{results[1][1]},{results[2][0]};{results[2][1]},{results[3][0]};{results[3][1]}\n"
+        except Exception as e:
+            line = f"0,0%;0/1,0%;0/1,0%;0/1,0%;0/1\n"
+        print("Coverage: ", line)
+        with open("output/coverage.csv", "a") as f:
+            f.write("time,statement,branch,function,line\n")
+            f.write(line)
+        shutil.move(f"{self.project_path}/report", "output")

@@ -1,0 +1,45 @@
+default_profile: Random Exploration
+output_path: ./output
+# [optional, default = 0] Interval time of record data. Present in seconds. Zero means no recording.
+record_interval: 30
+# [optional, default = 0] Maximum time for agent testing. Present in seconds. Zero means no limit.
+test_time: 60
+
+profiles:
+  - name: Random Exploration
+    agent:
+      module: agent.impl.random_agent
+      class: RandomAgent
+    actionDetector:
+      module: action.detector.click_action_detector
+      class: ClickActionDetector
+    state:
+      module: state.impl.action_set_state
+      class: ActionSetState
+    recovery: False
+  - name: Targeted Exploration
+    agent:
+      module: agent.impl.dfs_agent
+      class: DFSAgent
+    actionDetector:
+      module: action.detector.click_action_detector
+      class: ClickActionDetector
+    state:
+      module: state.impl.action_set_state
+      class: ActionSetState
+    use_ptg: True
+  - name: RL-based Exploration
+    agent:
+      module: agent.impl.q_learning_agent
+      class: QLearningAgent
+      alpha: 0.1
+      gamma: 0.5
+      epsilon: 0.1
+      initial_q_value: 10.0
+    actionDetector:
+      module: action.detector.click_action_detector
+      class: ClickActionDetector
+    state:
+      module: state.impl.action_set_state
+      class: ActionSetState
+    recovery: False

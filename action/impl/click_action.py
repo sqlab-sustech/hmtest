@@ -21,7 +21,8 @@ class ClickAction(WindowAction):
 
     def execute(self, d: Driver) -> None:
         a, p = d.get_ability_and_page()
-        keyboard_exist = d(id="KeyCanvasKeyboard").exists(retries=1)
+        # keyboard_exist = d(id="KeyCanvasKeyboard").exists(retries=1)
+        keyboard_exist = d.keyboard_exist(retries=1)
         xml_element = None
         if self.locator is not None and self.location is not None:
             xml_element = self.locator.locate(d, self.location)
@@ -38,7 +39,8 @@ class ClickAction(WindowAction):
         #     d.press_key(KeyCode.ENTER)
         #     time.sleep(2)
         ability_name, page_name = d.get_ability_and_page()
-        if (not keyboard_exist or a != ability_name or p != page_name) and d(id="KeyCanvasKeyboard").exists(retries=1):
+        # if (not keyboard_exist or a != ability_name or p != page_name) and d(id="KeyCanvasKeyboard").exists(retries=1):
+        if (not keyboard_exist or a != ability_name or p != page_name) and d.keyboard_exist(retries=1):
             pre_text_len = 5
             if xml_element:
                 pre_text_len = len(xml_element.attributes.get("text"))
@@ -47,7 +49,8 @@ class ClickAction(WindowAction):
             chatgpt_agent = ChatgptAgent(d)
             input_text = chatgpt_agent.generate_text_input()
             print("Generate TextInput: ", input_text)
-            d.input_text(input_text)
+            # d.input_text(input_text)
+            d.shell(f"uitest uiInput inputText 1 1 {input_text}")
             d.press_key(KeyCode.ENTER)
             time.sleep(2)
 

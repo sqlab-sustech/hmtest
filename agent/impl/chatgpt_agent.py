@@ -21,7 +21,7 @@ openai.api_key = API_KEY
 
 class ChatgptAgent(Agent):
     def __init__(self, d: Driver):
-        super().__init__()
+        super().__init__(d, "", "", {}, False, None)
         self.d = d
         self.state_repr_list: list[str] = list()
         self.page_path_count: dict[int, int] = dict()

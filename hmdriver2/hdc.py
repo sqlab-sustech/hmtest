@@ -80,6 +80,9 @@ class HdcWrapper:
         _serials = list_devices()
         return True if self.serial in _serials else False
 
+    def is_emulator(self):
+        return '127.0.0.1' in self.serial
+
     def forward_port(self, rport: int) -> int:
         lport: int = FreePort().get()
         result = _execute_command(f"hdc -t {self.serial} fport tcp:{lport} tcp:{rport}")

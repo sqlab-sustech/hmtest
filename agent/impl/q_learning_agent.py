@@ -26,20 +26,17 @@ logger.propagate = False
 
 
 class QLearningAgent(Agent):
-    def __init__(self, d: Driver, app: str, ability_name: str, PTG: dict, use_ptg: bool):
-        super().__init__()
+    def __init__(self, d: Driver, app: str, ability_name: str, PTG: dict, use_ptg: bool, config):
+        super().__init__(d, app, ability_name, PTG, use_ptg, config)
         self.d = d
         self.app = app
         self.ability_name = ability_name
         self.PTG = PTG
         self.AGENT_TYPE = "Q"
-        self.ALPHA = 0.1
-        self.GAMMA = 0.5
-        self.EPSILON = 0.9
-        self.INITIAL_Q_VALUE = 10.0
-        self.R_REWARD = 10.0
-        self.R_PENALTY = -9999.0
-        self.MAX_SIM_LINE = 0.8
+        self.ALPHA = config["agent"].get("alpha", 0.1)
+        self.GAMMA = config["agent"].get("gamma", 0.5)
+        self.EPSILON = config["agent"].get("epsilon", 0.1)
+        self.INITIAL_Q_VALUE = config["agent"].get("initial-q-value", 10.0)
         self.state_repr_list = list()
         self.q_table: dict[int, dict[int, float]] = dict()
         self.page_path_count = defaultdict(int)
@@ -290,7 +287,7 @@ class QLearningAgent(Agent):
             chosen_action = actions[0]
             max_val = self.q_table[state_index][self.get_action_index(chosen_action)]
         else:
-            if x < self.EPSILON:
+            if x >= self.EPSILON:
                 with open("output/log.txt", "a") as f:
                     f.write("q-learning" + "\n")
                 print("q-learning")

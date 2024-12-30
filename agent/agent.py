@@ -1,14 +1,20 @@
 from abc import ABC, abstractmethod
 
 from action.window_action import WindowAction
+from hmdriver2.driver import Driver
 from state.window_state import WindowState
 
 
 class Agent(ABC):
 
-    def __init__(self):
+    # def __init__(self):
+    #     self.action_list: list[WindowAction] = []
+    #     self.action_count: dict[int, int] = {}
+
+    def __init__(self, d: Driver, app: str, ability_name: str, PTG: dict, use_ptg: bool, config):
         self.action_list: list[WindowAction] = []
         self.action_count: dict[int, int] = {}
+        self.config = config
 
     @abstractmethod
     def get_action(self, window_state: WindowState) -> WindowAction:

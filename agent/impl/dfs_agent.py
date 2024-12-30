@@ -1,26 +1,20 @@
-import math
 import random
 from collections import defaultdict
 
 from action.element_locator import ElementLocator
 from action.impl.back_action import BackAction
 from action.impl.click_action import ClickAction
-from action.impl.restart_action import RestartAction
 from action.window_action import WindowAction
 from agent.agent import Agent
 from agent.impl.q_learning_agent import QLearningAgent
-from exceptions import NoActionsException
 from hmdriver2.driver import Driver
-from hmdriver2.utils import parse_bounds
 from state.impl.action_set_state import ActionSetState
-from state.impl.out_of_domain_state import OutOfDomainState
-from state.impl.same_url_state import SameUrlState
 from state.window_state import WindowState
 
 
 class DFSAgent(Agent):
-    def __init__(self, d: Driver, app: str, ability_name: str, PTG: dict):
-        super().__init__()
+    def __init__(self, d: Driver, app: str, ability_name: str, PTG: dict, use_ptg: bool, config):
+        super().__init__(d, app, ability_name, PTG, use_ptg, config)
         self.d = d
         self.app = app
         self.ability_name = ability_name
@@ -43,7 +37,7 @@ class DFSAgent(Agent):
         self.router_pages = set()
         self.calculate_in_degree()
         self.state_used_action_dict: dict[WindowState, set[WindowAction]] = defaultdict(set)
-        self.q_learning_agent = QLearningAgent(d, app, ability_name, PTG, True)
+        self.q_learning_agent = QLearningAgent(d, app, ability_name, PTG, True, self.config)
         self.total_action_number = 0
         self.exploration_page_counts = defaultdict(int)
         self.intra_q_try_count = defaultdict(int)

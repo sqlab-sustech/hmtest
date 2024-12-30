@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 
 import json
+import time
 import uuid
 import re
 from typing import Type, Any, Tuple, Dict, Union, List
 from functools import cached_property  # python3.8+
 
 from . import logger
-from .utils import delay
+from .utils import delay, parse_bounds
 from ._client import HmClient
 from ._uiobject import UiObject
-from .proto import HypiumResponse, KeyCode, Point, DisplayRotation, DeviceInfo, CommandResult
+from .proto import HypiumResponse, KeyCode, Point, DisplayRotation, DeviceInfo, CommandResult, ComponentData
 
 
 class Driver:
@@ -21,7 +22,7 @@ class Driver:
         self._client = HmClient(self.serial)
         self.hdc = self._client.hdc
 
-        self._init_hmclient()
+        # self._init_hmclient()
 
     def __new__(cls: Type[Any], serial: str) -> Any:
         """
@@ -61,7 +62,11 @@ class Driver:
     def force_stop_app(self):
         # self.hdc.stop_app(package_name)
         self.go_home()
-        self.hdc.swipe(1000, 2600, 1000, 1200, 1000)
+
+        if self.hdc.is_emulator():
+            self.hdc.swipe(1000, 2700, 1000, 1200, 1000)
+        else:
+            self.hdc.swipe(1000, 2600, 1000, 1200, 100)
         self.hdc.swipe(600, 2000, 600, 1000, 5000)
         # self.hdc.tap(600, 2400)
 
@@ -281,10 +286,10 @@ class Driver:
     @delay
     def click(self, x: Union[int, float], y: Union[int, float]):
 
-        # self.hdc.tap(point.x, point.y)
-        point = self._to_abs_pos(x, y)
-        api = "Driver.click"
-        self._invoke(api, args=[point.x, point.y])
+        self.hdc.tap(x, y)
+        # point = self._to_abs_pos(x, y)
+        # api = "Driver.click"
+        # self._invoke(api, args=[point.x, point.y])
 
     @delay
     def double_click(self, x: Union[int, float], y: Union[int, float]):
@@ -412,3 +417,21 @@ class Driver:
         ability_name = node["attributes"]["abilityName"]
         page_path = node["attributes"]["pagePath"]
         return ability_name, page_path
+
+    def keyboard_exist(self, retries: int = 1, wait_time=1) -> bool:
+        def dfs(node: dict) -> bool:
+            if node["attributes"]["id"] == "KeyCanvasKeyboard":
+                return True
+            for child in node["children"]:
+                if dfs(child):
+                    return True
+            return False
+
+        for attempt in range(retries):
+            root = self.dump_hierarchy()
+            if dfs(root):
+                return True
+            if attempt < retries:
+                time.sleep(wait_time)
+                logger.info(f"Retry found element {self}")
+        return False
