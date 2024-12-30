@@ -36,6 +36,7 @@ class AppTest:
     def __init__(self, serial: str, app: str, project_path: str, module_name: str, product_name: str, TIME):
         super().__init__()
         self.d: Driver = Driver(serial)
+        self.serial = serial
         self.app = app
         self.project_path = project_path
         self.use_ptg = False
@@ -581,7 +582,7 @@ class AppTest:
         shutil.move("arkanalyzer/PTG.json", "./PTG.json")
 
     def get_coverage(self, module_name, t):
-        data_cmd = f"hdc file recv data/app/el2/100/base/{self.app}/haps/{module_name.split('/')[-1]}/cache {self.project_path}"
+        data_cmd = f"hdc -t {self.serial} file recv data/app/el2/100/base/{self.app}/haps/{module_name.split('/')[-1]}/cache {self.project_path}"
         report_cmd = f"hvigorw collectCoverage -p projectPath={self.project_path} -p reportPath={self.project_path}/report -p coverageFile={self.project_path}/{module_name}/.test/default/intermediates/ohosTest/init_coverage.json#{self.project_path}/cache"
         del_cmd = "powershell -Command Remove-Item -Recurse -Force cache, report" if os.name == "nt" else "rm -rf cache report"
         os.system(f"cd {self.project_path} & {del_cmd} & {data_cmd} & {report_cmd}")
