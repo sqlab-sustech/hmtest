@@ -126,8 +126,6 @@ class HdcWrapper:
 
     def uninstall(self, bundlename: str):
         result = _execute_command(f"hdc -t {self.serial} uninstall {bundlename}")
-        if result.exit_code != 0:
-            raise HdcError("HDC uninstall error", result.output)
         return result
 
     def install(self, apkpath: str):

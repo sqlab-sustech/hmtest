@@ -47,10 +47,10 @@ class Driver:
         return self._client.invoke(api, this="Driver#0", args=args)
 
     @delay
-    def start_app(self, package_name: str, page_name: str = "MainAbility"):
+    def start_app(self, package_name: str, page_name: str = "EntryAbility"):
         self.hdc.start_app(package_name, page_name)
 
-    def force_start_app(self, package_name: str, page_name: str = "MainAbility"):
+    def force_start_app(self, package_name: str, page_name: str = "EntryAbility"):
         self.go_home()
         self.stop_app(package_name)
         self.start_app(package_name, page_name)

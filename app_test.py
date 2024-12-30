@@ -103,10 +103,11 @@ class AppTest:
     def ability_name(self):
         # 有时候bm dump会卡住
         app_info = self.d.get_app_info(self.app)
-        return app_info["hapModuleInfos"][0]["mainAbility"]
-        # if self.app == "com.itcast.pass_interview":
-        #     return "PhoneAbility"
-        # return "EntryAbility"
+        abilities = app_info["hapModuleInfos"]
+        for ability in abilities:
+            if ability["mainAbility"]:
+                return ability["mainAbility"]
+        return "EntryAbility"
 
     def start_test(self):
         # self.d.stop_app(self.app)
@@ -293,7 +294,8 @@ class AppTest:
                 self.state_count = self.same_page_count = 0
                 action_list = self.action_detector.get_actions(self.d)
                 ability_name, page_path = self.d.get_ability_and_page()
-                self.prev_state = self.current_state = self.pre_process(self.state_class(action_list, ability_name, page_path))
+                self.prev_state = self.current_state = self.pre_process(
+                    self.state_class(action_list, ability_name, page_path))
                 # self.state_dict[self.current_state] = self.state_dict.get(self.current_state, 0) + 1
         self.data_thread.join()
         self.save_final_data()
