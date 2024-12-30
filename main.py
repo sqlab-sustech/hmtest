@@ -1,30 +1,19 @@
 import argparse
-import json
-import os
 import random
 import shutil
 import time
 
-from bs4 import BeautifulSoup
-
 from app_test import AppTest
-from config.custom_json_encoder import CustomJSONEncoder
 from hmdriver2.driver import Driver
 
 
-def main(serial, app, project_path, module_name, product_name, t):
+def main(serial, app, project_path, module_name, t):
     shutil.rmtree("output")
-    d = Driver(serial)
     product_name = "default"
-    # if use_ptg and project_path:
-    #     get_ptg(project_path, module_name)
-    # if project_path:
-    #     install_hap(d, project_path, module_name, product_name, d)
     start_time = time.time()
     app_test = AppTest(serial, app, project_path, module_name, product_name, t)
     app_test.start_test()
     print(f"Test Finish! Total Time: {time.time() - start_time} seconds.")
-    # get_coverage(module_name, app_test, t)
 
 
 if __name__ == '__main__':
@@ -40,4 +29,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.seed:
         random.seed(args.seed)
-    main(args.serial, args.bundle_name, args.project_path, args.module_name, args.product_name, args.test_time)
+    main(args.serial, args.bundle_name, args.project_path, args.module_name, args.test_time)

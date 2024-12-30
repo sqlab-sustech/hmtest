@@ -1,4 +1,4 @@
-default_profile: Random Exploration
+default_profile: RL-based Exploration
 output_path: ./output
 # [optional, default = 0] Interval time of record data. Present in seconds. Zero means no recording.
 record_interval: 30
