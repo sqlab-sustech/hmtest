@@ -13,3 +13,6 @@ hmtest是一个开源的、通用的、智能化的鸿蒙应用自动化测试�
 # Related Work
 
 - https://github.com/sqlab-sustech/HarmonyOS-App-Test
+
+# Demo
+- https://youtu.be/HE6ku3Elc2U
