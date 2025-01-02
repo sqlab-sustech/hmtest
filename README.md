@@ -2,7 +2,8 @@
 
 hmtest是一个开源的、通用的、智能化的鸿蒙应用自动化测试框架。
 
-![image](https://github.com/user-attachments/assets/cf0ac857-a07f-4b09-ab3f-0dc093863544)
+![image](https://github.com/user-attachments/assets/01d368d6-bed4-477b-a2cb-2ca82ac6255f)
+
 
 # Reference
 
