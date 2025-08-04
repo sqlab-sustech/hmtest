@@ -1,6 +1,6 @@
-# hmtest
+# HmTest
 
-**hmtest** is an open-source, general-purpose, and intelligent automated testing framework for HarmonyOS Next apps.
+**HmTest** is an open-source, general-purpose, and intelligent automated testing framework for HarmonyOS Next apps.
 
 <img src="https://github.com/user-attachments/assets/01d368d6-bed4-477b-a2cb-2ca82ac6255f" alt="image" style="zoom: 50%;" />
 
@@ -76,3 +76,7 @@ Once the testing is completed, the results will be saved in the `output` folder.
 
 ## Demo
 - https://youtu.be/HE6ku3Elc2U
+
+## Citation
+
+Chen YG, Fan YJ, Wang SN, Tao YD, Liu YP. HmTest: Automated Testing of HarmonyOS Apps via Model-Driven Navigation and Reinforcement Learning. *Journal of Computer Science and Technology.* 2025, DOI: 10.1007/s11390-025-5142-4.
